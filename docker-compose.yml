@@ -1,0 +1,62 @@
+version: "3.3"
+
+
+services:
+  eureka-server:
+    build: ./EurekaServer
+    ports:
+      - "8761:8761"
+    depends_on:
+      - zookeeper
+    
+  api-gateway:
+    build: ./ApiGateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URI: "http://eureka-server:8761/eureka"
+    depends_on:
+      - api
+
+# To handle more requests you can add more instance of API
+  api:
+    build: ./Api
+    environment:
+      EUREKA_URI: "http://eureka-server:8761/eureka"
+      KAFKA_URI: "kafka:9092"
+      REDIS_HOST: "redis"
+
+    depends_on:
+      - eureka-server
+      - redis
+ 
+# To handle more requests you can add more instance of Stream
+  stream:
+    build: ./Stream
+    environment:
+      EUREKA_URI: "http://eureka-server:8761/eureka"
+      KAFKA_URI: "kafka:9092"
+    depends_on:
+      - eureka-server
+
+
+  redis:
+    image: "redis:alpine"
+
+  zookeeper:
+    image: 'bitnami/zookeeper:latest'
+
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  kafka:
+    image: 'bitnami/kafka:latest'
+
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+
+
+  
